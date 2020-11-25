@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="styles.css">
+	<title>PMD Portrait Repository</title>
+	<script
+		src="https://code.jquery.com/jquery-3.3.1.js"
+		integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+		crossorigin="anonymous">
+	</script>
+	<script>
+		$(function(){
+			$("#header").load("header.html"); 
+			$("#footer").load("footer.html"); 
+		});
+		
+		function findGetParameter(parameterName) {
+			var result = null, tmp = [];
+			location.search.substr(1).split("&").forEach(function (item) {
+				tmp = item.split("=");
+				if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+			});
+			return result;
+		}
+		
+		function populateTable(){
+		
+			var tracker = await fetch('tracker.json').then(response => response.json());
+			
+			var row = document.getElementById("entry");
+			
+			for (const entry in tracker){
+				if (tracker[entry]["portrait_credit"]) continue;
+				var pkdex = entry;
+				var name = tracker[entry]["name"];
+				var status = tracker[entry]["portrait_complete"];
+			}
+			
+		}
+		
+	</script>
+</head>
+<body>
+	<div id="header"></div>
+	<div class="gen-separator">
+		<h1>List</h1>
+	</div>
+	<table class="list-table">
+		<tr class="entry"></tr>
+	
+	<?
+	/*
+		foreach($folders as $entry){
+			echo "<tr class=\"entry\">";
+			
+			echo "<td class=\"pkdex\">Dex Nº #".$entry."</td>";
+			echo "<td class=\"portrait\"><img src=\"portrait/".$entry."/Normal.png\"></img></td>";
+			echo "<td class=\"name\">".$tracker_json[$entry]['name']."</td>";
+			
+			$status = $tracker_json[$entry]['portrait_complete'];
+			echo "<td class=\"status-".$status."\">".$status_names[$status]."</td>";
+
+			echo "<td class=\"links\"><a href=\"portrait.php?poke=".$entry."\">Portraits</a></td>";
+			
+			echo "</tr>";
+		}
+		*/
+	?>
+	</table>
+	
+	<div id="footer"></div>
+</body>
+</html>
