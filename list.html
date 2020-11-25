@@ -15,7 +15,7 @@
 		});
 		
 		function findGetParameter(parameterName) {
-			var result = null, tmp = [];
+			let result = null, tmp = [];
 			location.search.substr(1).split("&").forEach(function (item) {
 				tmp = item.split("=");
 				if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
@@ -23,20 +23,63 @@
 			return result;
 		}
 		
-		function populateTable(){
+		async function populateTable(gen, official){
 		
-			var tracker = await fetch('tracker.json').then(response => response.json());
+			let gens = [["0001","0898"],
+						["0001","0151"],
+						["0152","0251"],
+						["0252","0386"],
+						["0387","0493"],
+						["0494","0649"],
+						["0650","0721"],
+						["0722","0809"],
+						["0810","0898"]]
+						
+			let min = gens[gen][0];
+			let max = gens[gen][1];
+		
+			let tracker = await fetch('tracker.json').then(response => response.json());
 			
-			var row = document.getElementById("entry");
-			
+			let table = document.getElementById("main");
+
 			for (const entry in tracker){
-				if (tracker[entry]["portrait_credit"]) continue;
-				var pkdex = entry;
-				var name = tracker[entry]["name"];
-				var status = tracker[entry]["portrait_complete"];
+			
+				if (entry < min || entry > max) continue;
+				if (!(tracker[entry]["portrait_credit"])) continue;
+				if (official && tracker[entry]["portrait_credit"] == "CHUNSOFT") continue;
+			
+				let row = table.insertRow();
+				
+				let pkdex = row.insertCell(0);
+				pkdex.innerHTML = entry;
+				
+				let portrait = row.insertCell(1);
+				portrait.innerHTML = "<img src=\"portrait/"+entry+"/Normal.png\"></img>"
+				
+				let name = row.insertCell(2);
+				name.innerHTML = tracker[entry]["name"];
+				
+				let status = row.insertCell(3);
+				stn = tracker[entry]["portrait_complete"]
+				if (stn == 0 || stn == 1){st = "Exists"}else{st = "Fully Featured"}
+				status.innerHTML = st;
+				status.attributes = "class=\"status-"+stn+"\""
+				
+				let link = row.insertCell(4);
+				link.innerHTML = "<a href=\"portrait.html?id="+entry+"\">Portrait</a>";
+				
 			}
 			
 		}
+		
+		let gen = findGetParameter("gen");
+		if (gen < 0 || gen > 8) gen = 3
+		if (!(gen)) gen = 0;
+		
+		let official = findGetParameter("official");
+		if (!(official)) official = false;
+		
+		populateTable(gen,official);
 		
 	</script>
 </head>
@@ -46,26 +89,16 @@
 		<h1>List</h1>
 	</div>
 	<table class="list-table">
-		<tr class="entry"></tr>
-	
-	<?
-	/*
-		foreach($folders as $entry){
-			echo "<tr class=\"entry\">";
-			
-			echo "<td class=\"pkdex\">Dex Nº #".$entry."</td>";
-			echo "<td class=\"portrait\"><img src=\"portrait/".$entry."/Normal.png\"></img></td>";
-			echo "<td class=\"name\">".$tracker_json[$entry]['name']."</td>";
-			
-			$status = $tracker_json[$entry]['portrait_complete'];
-			echo "<td class=\"status-".$status."\">".$status_names[$status]."</td>";
-
-			echo "<td class=\"links\"><a href=\"portrait.php?poke=".$entry."\">Portraits</a></td>";
-			
-			echo "</tr>";
-		}
-		*/
-	?>
+		<thead>
+			<tr>
+				<th>Pkdex #</th>
+				<th></th>
+				<th>Name</th>
+				<th>Status</th>
+				<th>Portrait</th>
+			</tr>
+		</thead>
+		<tbody id="main"></tbody>
 	</table>
 	
 	<div id="footer"></div>

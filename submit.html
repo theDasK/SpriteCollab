@@ -3,12 +3,23 @@
 <head>
 	<link rel="stylesheet" href="styles.css">
 	<title>PMD Portrait Repository</title>
+	
+	<script
+		src="https://code.jquery.com/jquery-3.3.1.js"
+		integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+		crossorigin="anonymous">
+	</script>
+	<script>
+		$(function(){
+			$("#header").load("header.html"); 
+			$("#footer").load("footer.html"); 
+		});
+	</script>
 </head>
 <body>
-	<!--#include file="header.html" -->
-	
-	todo
-	
-	<!--#include file="footer.html" -->
+	<div id="header"></div>
+
+
+	<div id="footer"></div>
 </body>
 </html>
