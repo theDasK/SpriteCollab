@@ -23,7 +23,7 @@
 			return result;
 		}
 		
-		async function populateTable(gen, official){
+		async function populateTable(gen, notofficial, filled){
 		
 			let gens = [["0001","0898"],
 						["0001","0151"],
@@ -46,7 +46,8 @@
 			
 				if (entry < min || entry > max) continue;
 				if (!(tracker[entry]["portrait_credit"])) continue;
-				if (official && tracker[entry]["portrait_credit"] == "CHUNSOFT") continue;
+				if (notofficial && tracker[entry]["portrait_credit"] == "CHUNSOFT") continue;
+				if (filled && tracker[entry]["portrait_complete"] != 2) continue;
 			
 				let row = table.insertRow();
 				
@@ -75,19 +76,16 @@
 		let gen = findGetParameter("gen");
 		if (gen < 0 || gen > 8) gen = 3
 		if (!(gen)) gen = 0;
+		let notofficial = findGetParameter("notofficial");
+		let filled = findGetParameter("filled");
 		
-		let official = findGetParameter("official");
-		if (!(official)) official = false;
-		
-		populateTable(gen,official);
+		populateTable(gen,notofficial,filled);
 		
 	</script>
 </head>
 <body>
 	<div id="header"></div>
-	<div class="gen-separator">
-		<h1>List</h1>
-	</div>
+	
 	<table class="list-table">
 		<thead>
 			<tr>

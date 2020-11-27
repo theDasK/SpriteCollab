@@ -55,12 +55,19 @@
 				container.appendChild(title);
 				
 				let table = makeTable(forms[i].path)
+				table.setAttribute("class", "port-table");
+				let row = table.insertRow(8);
+				let cell = row.insertCell(0);
+				cell.innerHTML = "Credit: " +forms[i].portrait_credit;
+				cell.setAttribute("class", "port-expresion");
+				cell.setAttribute("colspan", 5);
 				container.appendChild(table);
 				
-				let credit = document.createElement("p");
-				credit.innerHTML = "Credit: " +forms[i].portrait_credit				//TODO: link to the author
-				credit.setAttribute("class", "port-credit");
-				container.appendChild(credit);
+				/*let donwload = document.createElement("div");
+				donwload.innerHTML = "<p>Download!</p>"
+				donwload.setAttribute("onclick", "createFilledImage(\""+forms[i].path+"\")");
+				donwload.setAttribute("class", "Button");
+				container.appendChild(donwload);*/
 			}
 				
 		}
@@ -84,9 +91,10 @@
 			return subgroups;
 		}
 		
-		function imgMissing(img){
+		function imgMissing(img,index){
 			
 			img.src = "empty.png";
+			missingExpresions[index] = true;
 		}
 		
 		function makeTable(path){
@@ -101,15 +109,15 @@
 			row = table.insertRow(0);
 			
 			cell = row.insertCell(0);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Normal.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,0)\" src=\"portrait/"+id+path+"Normal.png\"></img>";
 			cell = row.insertCell(1);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Happy.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,1)\" src=\"portrait/"+id+path+"Happy.png\"></img>";
 			cell = row.insertCell(2);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Pain.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,2)\" src=\"portrait/"+id+path+"Pain.png\"></img>";
 			cell = row.insertCell(3);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Angry.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,3)\" src=\"portrait/"+id+path+"Angry.png\"></img>";
 			cell = row.insertCell(4);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Worried.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,4)\" src=\"portrait/"+id+path+"Worried.png\"></img>";
 			
 			
 			row = table.insertRow(1);
@@ -133,15 +141,15 @@
 			row = table.insertRow(2);
 			
 			cell = row.insertCell(0);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Sad.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,5)\" src=\"portrait/"+id+path+"Sad.png\"></img>";
 			cell = row.insertCell(1);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Crying.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,6)\" src=\"portrait/"+id+path+"Crying.png\"></img>";
 			cell = row.insertCell(2);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Shouting.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,7)\" src=\"portrait/"+id+path+"Shouting.png\"></img>";
 			cell = row.insertCell(3);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Teary-Eyed.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,8)\" src=\"portrait/"+id+path+"Teary-Eyed.png\"></img>";
 			cell = row.insertCell(4);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Determined.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,9)\" src=\"portrait/"+id+path+"Determined.png\"></img>";
 			
 			row = table.insertRow(3);
 			
@@ -164,20 +172,20 @@
 			row = table.insertRow(4);
 			
 			cell = row.insertCell(0);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Joyus.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,10)\" src=\"portrait/"+id+path+"Joyous.png\"></img>";
 			cell = row.insertCell(1);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Inspired.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,11)\" src=\"portrait/"+id+path+"Inspired.png\"></img>";
 			cell = row.insertCell(2);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Surprised.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,12)\" src=\"portrait/"+id+path+"Surprised.png\"></img>";
 			cell = row.insertCell(3);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Dizzy.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,13)\" src=\"portrait/"+id+path+"Dizzy.png\"></img>";
 			cell = row.insertCell(4);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Special0.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,14)\" src=\"portrait/"+id+path+"Special0.png\"></img>";
 			
 			row = table.insertRow(5);
 			
 			cell = row.insertCell(0);
-			cell.innerHTML = "Joyus";
+			cell.innerHTML = "Joyous";
 			cell.setAttribute("class", "port-expresion");
 			cell = row.insertCell(1);
 			cell.innerHTML = "Inspired";
@@ -195,15 +203,15 @@
 			row = table.insertRow(6);
 			
 			cell = row.insertCell(0);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Special1.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,15)\" src=\"portrait/"+id+path+"Special1.png\"></img>";
 			cell = row.insertCell(1);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Sigh.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,16)\" src=\"portrait/"+id+path+"Sigh.png\"></img>";
 			cell = row.insertCell(2);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Stunned.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,17)\" src=\"portrait/"+id+path+"Stunned.png\"></img>";
 			cell = row.insertCell(3);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Special2.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,18)\" src=\"portrait/"+id+path+"Special2.png\"></img>";
 			cell = row.insertCell(4);
-			cell.innerHTML = "<img onerror=\"imgMissing(this)\" src=\"portrait/"+id+path+"Special3.png\"></img>";
+			cell.innerHTML = "<img onerror=\"imgMissing(this,19)\" src=\"portrait/"+id+path+"Special3.png\"></img>";
 			
 			row = table.insertRow(7);
 			
@@ -225,6 +233,39 @@
 			
 			return table;
 		}
+		
+		function createFilledImage(path){
+			/*
+			let c=document.createElement("canvas");
+			c.width = 200, c.height = 160;
+			let ctx=c.getContext("2d");
+			let col = 0, row = 0;
+			let image;
+			
+			for (i = 0; i < 20; i++) {
+			
+				image = new Image();
+				image.onload = function() {
+					ctx.drawImage(image, 40 * col, 40 * row)
+				};
+				image.src = "portrait/"+id+path+"Normal.png";
+				
+				col++;
+				if (col == 5){
+					col = 0;
+					row++;
+				}
+			}
+
+			container.appendChild(c);
+			var link = document.createElement('a');
+			link.download = 'filename.png';
+			link.href = c.toDataURL()
+			link.click();*/
+		}
+		
+		let missingExpresions = new Array(20).fill(false);
+		let expresionNames = ["Normal","Happy","Pain","Angry","Worried","Sad","Crying","Shouting","Teary-Eyed","Determined","Joyous","Inspired","Surprised","Dizzy","Special0","Special1","Sigh","Stunned","Special2","Special3"]
 
 		let id = findGetParameter("id");
 		if (!(id)) id = false;
