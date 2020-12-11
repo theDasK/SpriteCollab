@@ -199,7 +199,7 @@ function createTable(id, pjson ,path){
     donwload.innerHTML = "<p>Download!</p>"
     donwload.setAttribute("onclick", "downloadCanvas(this)");
     donwload.setAttribute("class", "port-button");
-    //div.appendChild(donwload);
+    div.appendChild(donwload);
 
     return div;
 }
