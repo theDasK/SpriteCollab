@@ -118,9 +118,10 @@ function fetchImage(context,cell,id,path,expresion,reverse,row,col){
 
 function downloadCanvas(element){
     let canvas = element.parentElement.getElementsByTagName("canvas")[0];
-    canvas.toBlob(function(blob) {
-        saveAs(blob, "output.png");
-    }, "image/png");
+    let link = document.createElement('a');
+    link.download = 'filename.png';
+    link.href = canvas.toDataURL()
+    link.click();
 }
 
 function createTable(id, pjson ,path){
