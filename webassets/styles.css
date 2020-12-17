@@ -104,6 +104,14 @@ h3 {
 	text-align: center;
 }
 
+#main tr:nth-child(even){
+	background-color: #404040;
+}
+
+#main tr:hover {
+	background-color: #505050;
+}
+
 /*#333333*/
 
 /* Add a black background color to the top navigation */

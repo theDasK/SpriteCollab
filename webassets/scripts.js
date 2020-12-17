@@ -118,9 +118,9 @@ function fetchImage(context,cell,id,path,expresion,reverse,row,col){
     if(expresion){
         if (reverse) expresion += "^", row += 8;
         img.src = sourcePath + "portrait/" + id + path + expresion +".png";
-        $(img).on('load', function() {
+        img.onload = function() {
             context.drawImage(img,40*col,40*row/2);
-        });
+        };
     } else {
         img.src = "webassets/empty.png";
     }
