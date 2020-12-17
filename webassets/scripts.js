@@ -24,6 +24,7 @@ async function loadCredits(){
     text = text.split("\n");
     text.shift(); //remove the table titles
     for (i in text){
+        if (text[i] == "") continue;
         let entry = text[i].split("\t");
         credits[entry[1]] = entry;
     }
