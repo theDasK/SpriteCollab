@@ -37,42 +37,44 @@
 		<a href="list.html?missing=true">Missing</a>
 		<a href="contributors.html">Contributors</a>
 	</div>
-	
-	<div class="list-filter">
-		<input type="checkbox" name="official"> Include Spike Chunsoft
-		<input type="checkbox" name="filled"> Fully Fetured
-		<input type="checkbox" name="incomplete"> Existing or Incomplete
-		<input type="checkbox" name="missing"> Missing
-		<select name="gens" id="list-genselect">
-			<option value="0">All Gens</option>
-			<option value="1">Gen 1</option>
-			<option value="2">Gen 2</option>
-			<option value="3">Gen 3</option>
-			<option value="4">Gen 4</option>
-			<option value="5">Gen 5</option>
-			<option value="6">Gen 6</option>
-			<option value="7">Gen 7</option>
-			<option value="8">Gen 8</option>
-		</select>
-		<input type="button" onclick="prepareForTable()" value="Filter">
-	</div>
 
 	<div id=wait class="list-filter">
 		<p>LOADING</p>
 	</div>
+	
+	<div id="list-container">
+		<div class="list-filter">
+			<input type="checkbox" name="official"> Include Spike Chunsoft<br>
+			<input type="checkbox" name="filled"> Fully Fetured<br>
+			<input type="checkbox" name="incomplete"> Existing or Incomplete<br>
+			<input type="checkbox" name="missing"> Missing<br>
+			<select name="gens" id="list-genselect">
+				<option value="0">All Gens</option>
+				<option value="1">Gen 1</option>
+				<option value="2">Gen 2</option>
+				<option value="3">Gen 3</option>
+				<option value="4">Gen 4</option>
+				<option value="5">Gen 5</option>
+				<option value="6">Gen 6</option>
+				<option value="7">Gen 7</option>
+				<option value="8">Gen 8</option>
+			</select><br>
+			<input type="button" onclick="prepareForTable()" value="Filter">
+		</div>
 
-	<table class="list-table">
-		<thead>
-			<tr>
-				<th>Pkdex #</th>
-				<th></th>
-				<th>Name</th>
-				<th>Status</th>
-				<th>Portrait</th>
-			</tr>
-		</thead>
-		<tbody id="main"></tbody>
-	</table>
+		<table class="list-table">
+			<thead>
+				<tr>
+					<th>Pkdex #</th>
+					<th></th>
+					<th>Name</th>
+					<th>Status</th>
+					<th>Portrait</th>
+				</tr>
+			</thead>
+			<tbody id="main"></tbody>
+		</table>
+	</div>
 	
 	<div class="footer">
 		<a href="#header">⬆️TOP<a>
