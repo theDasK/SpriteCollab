@@ -34,7 +34,7 @@ def loadLastRunDate():
             lastRunDate = datetime.fromisoformat(datefile.read())
     except:
         print("Failed to get lastrun date")
-        exit(1001)
+        exit(1002)
 
     return lastRunDate
 
@@ -44,12 +44,38 @@ def loadlastRunJson():
             lastRunJson = json.loads(jsonfile.read())
     except:
         print("Failed to get pokemons.json")
-        exit(1001)
+        exit(1003)
 
     return lastRunJson
 
-#Download the txt files that contains the credits, and turn them into an array of array
-def loadCreditsFile(botPath):
+#Download the txt file that contains a file containing all credits, and turn them into a dictionary
+def loadCreditNamesFile():
+    try:
+        response = requests.get(URL + "credit_names.txt", allow_redirects=True)
+        creditsfile = response.content.decode("utf-8")
+
+        result = {}
+
+        creditsfile = creditsfile.split('\n')
+        if creditsfile[len(creditsfile)-1] == "": creditsfile.pop()
+        for i in range(1,len(creditsfile)):
+            creditsfile[i] = creditsfile[i].split('\t')
+            
+            result[i] = {
+                'id': creditsfile[i][1],
+                'name': creditsfile[i][0],
+                'contact': creditsfile[i][2],
+                'worked': []
+            }
+
+        return result
+        
+    except:
+        print("Failed to retrieve the main credit file: " + URL + "credit_names.txt")
+        exit(1004)
+
+#Download the txt files that contains the individual credits of a portrait set, and turn them into an array of array, + adds link them in the credit names array
+def loadCreditFiles(creditsNames, botPath, id):
     try:
         response = requests.get(URL + "portrait" + botPath + 'credits.txt', allow_redirects=True)
         creditsfile = response.content.decode("utf-8")
@@ -58,6 +84,12 @@ def loadCreditsFile(botPath):
         if creditsfile[len(creditsfile)-1] == "": creditsfile.pop()
         for i in range(len(creditsfile)):
             creditsfile[i] = creditsfile[i].split('\t')
+
+            for k in creditsNames:
+                if creditsfile[i][1] == creditsNames[k]['id']:
+                    creditsfile[i][1] = k
+                    creditsNames[k]['worked'] += [id]
+                    break
 
         return creditsfile
         
@@ -70,16 +102,24 @@ def writeOutputFile(output):
         with open('resources/pokemons.json', 'w') as outfile:
             json.dump(output, outfile)
     except:
-        print("Failed to get pokemons.json")
-        exit(1001)
+        print("Failed to write pokemons.json")
+        exit(1005)
+
+def writeCreditsName(output):
+    try:
+        with open('resources/credits.json', 'w') as outfile:
+            json.dump(output, outfile)
+    except:
+        print("Failed to write credits.json")
+        exit(1007)
 
 def writeDateofRun():
     try:
         with open("action/lastrun","w") as datefile:
             datefile.write(str(datetime.now()))
     except:
-        print("Failed to get lastrun date")
-        exit(1001)
+        print("Failed to write lastrun date")
+        exit(1006)
 
 #downloads a single portrait
 def retrivePortrait(url):
@@ -94,6 +134,8 @@ def retrivePortrait(url):
 
 #gets the neutral of the first form, to fill the sites list
 def downloadThumb(id):
+
+    return ##################################################################################################################
     try:
         response = requests.get(URL + "portrait/" + id + "/Normal.png", allow_redirects=True)
         neutral = Image.open(BytesIO(response.content))
@@ -107,13 +149,14 @@ def newEntry(id, name):
     entry = {
             'id': id,
             'name': name,
+            'complete': 0,
             'forms': {}
         }
 
     return entry
 
 #generates a dictionary from a form entry
-def newForm(formEntry, formEntryName, formEntrybotPath):
+def newForm(formEntry, formEntryName, formEntrybotPath, formId, creditsNames):
 
     pForm = {
         'name': formEntryName,
@@ -149,7 +192,7 @@ def newForm(formEntry, formEntryName, formEntrybotPath):
     if not pForm['portraits'] and not pForm['preversed']:
         return False
     else:
-        pForm['credits'] = loadCreditsFile(formEntrybotPath)
+        pForm['credits'] = loadCreditFiles(creditsNames, formEntrybotPath, formId)
         return pForm
 
 #making it a function to decluter the main loop
@@ -163,7 +206,7 @@ def testTime(entry,lastrun):
 
 #Generates the big mozaic of portraits
 def generatePortrait(portraits,preversed,botPath,filename):
-    
+    return ##################################################################################################################
     if portraits.count(1) == 1 and not preversed:
         compilation = Image.new("RGBA", (40, 40), (0, 0, 0, 0))
         compilation.paste(retrivePortrait(URL + "portrait" + botPath + "Normal.png"), (0,0))
@@ -196,13 +239,12 @@ def generatePortrait(portraits,preversed,botPath,filename):
 
     compilation.save("resources/portraits/" + filename)
 
-
 #start of the sctript itself ####################################################
-
 
 tracker = loadTrackerFile()
 lastRunDate = loadLastRunDate()
 lastRunJson = loadlastRunJson()
+creditsNames = loadCreditNamesFile()
 
 for jentry in tracker:# the hella important main loop
 
@@ -210,19 +252,21 @@ for jentry in tracker:# the hella important main loop
         print(jentry + " new")
         lastRunJson[jentry] = newEntry(jentry, tracker[jentry]['name'])
 
+    lastRunJson[jentry]['complete'] = tracker[jentry]['portrait_complete']
+
     for jform in tracker[jentry]['subgroups']: #Track all forms
 
         #normal form
         if testTime(tracker[jentry]['portrait_modified'],lastRunDate):
 
             if jform == "0000": #form 0000 is special, has no info but its on the main entry
-                form = newForm(tracker[jentry], "Normal", "/"+ jentry + "/")
+                form = newForm(tracker[jentry], "Normal", "/"+ jentry + "/", jentry, creditsNames)
                 if form:
                     lastRunJson[jentry]['forms'][jform] = form
                     generatePortrait(form["portraits"],form["preversed"],"/"+ jentry + "/",form["filename"])
             
             else:
-                form = newForm(tracker[jentry]['subgroups'][jform], tracker[jentry]['subgroups'][jform]['name'], "/"+ jentry + "/" + jform + "/")
+                form = newForm(tracker[jentry]['subgroups'][jform], tracker[jentry]['subgroups'][jform]['name'], "/"+ jentry + "/" + jform + "/", jentry, creditsNames)
                 if form:
                     lastRunJson[jentry]['forms'][jform] = form
                     generatePortrait(form["portraits"],form["preversed"],"/"+ jentry + "/" + jform + "/",form["filename"])
@@ -231,7 +275,7 @@ for jentry in tracker:# the hella important main loop
         if '0000' in tracker[jentry]['subgroups'][jform]['subgroups']:
             if '0002' in tracker[jentry]['subgroups'][jform]['subgroups']['0000']['subgroups']:
                 if testTime(tracker[jentry]['subgroups'][jform]['subgroups']['0000']['subgroups']['0002']['portrait_modified'],lastRunDate):
-                    form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0000']['subgroups']['0002'], "Female", "/"+ jentry + "/" + jform + "/0000/0002/")
+                    form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0000']['subgroups']['0002'], "Female", "/"+ jentry + "/" + jform + "/0000/0002/", jentry + "f", creditsNames)
                     if form:
                         lastRunJson[jentry]['forms'][jform+"f"] = form
                         generatePortrait(form["portraits"],form["preversed"],"/"+ jentry + "/" + jform + "/0000/0002/",form["filename"])
@@ -239,7 +283,7 @@ for jentry in tracker:# the hella important main loop
         #check for shiny
         if '0001' in tracker[jentry]['subgroups'][jform]['subgroups']:
             if testTime(tracker[jentry]['subgroups'][jform]['subgroups']['0001']['portrait_modified'],lastRunDate):
-                form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0001'], "Shiny", "/"+ jentry + "/" + jform + "/0001/")
+                form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0001'], "Shiny", "/"+ jentry + "/" + jform + "/0001/", jentry + "s", creditsNames)
                 if form:
                     lastRunJson[jentry]['forms'][jform+"s"] = form
                     generatePortrait(form["portraits"],form["preversed"],"/"+ jentry + "/" + jform + "/0001/",form["filename"])
@@ -247,7 +291,7 @@ for jentry in tracker:# the hella important main loop
         #check for female shiny
                 if '0002' in tracker[jentry]['subgroups'][jform]['subgroups']['0001']['subgroups']:
                     if testTime(tracker[jentry]['subgroups'][jform]['subgroups']['0001']['subgroups']['0002']['portrait_modified'],lastRunDate):
-                        form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0001']['subgroups']['0002'], "Female Shiny", "/"+ jentry + "/" + jform + "/0001/0002/")
+                        form = newForm(tracker[jentry]['subgroups'][jform]['subgroups']['0001']['subgroups']['0002'], "Female Shiny", "/"+ jentry + "/" + jform + "/0001/0002/", jentry + "fs", creditsNames)
                         if form:
                             lastRunJson[jentry]['forms'][jform+"fs"] = form
                             generatePortrait(form["portraits"],form["preversed"],"/"+ jentry + "/" + jform + "/0001/0002/",form["filename"])
@@ -259,4 +303,5 @@ for jentry in tracker:# the hella important main loop
         print(lastRunJson[jentry]["id"])
 
 writeOutputFile(lastRunJson)
-#writeDateofRun()
+writeCreditsName(creditsNames)
+writeDateofRun()

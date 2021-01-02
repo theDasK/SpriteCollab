@@ -219,7 +219,7 @@ function createTable(id, pjson ,path){
 
 async function populateListTable(tablebody,creator,gen,official,filled,incomplete,missing){
 		
-    let gens = [["0001","0898"],
+    let gens = [["0001","2000"],
                 ["0001","0151"],
                 ["0152","0251"],
                 ["0252","0386"],
@@ -227,7 +227,7 @@ async function populateListTable(tablebody,creator,gen,official,filled,incomplet
                 ["0494","0649"],
                 ["0650","0721"],
                 ["0722","0809"],
-                ["0810","0898"]]
+                ["0810","2000"]]
                 
     let tracker = await loadTracker();
     
