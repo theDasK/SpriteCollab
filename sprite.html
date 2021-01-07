@@ -1,0 +1,451 @@
+<style>
+#drop_zone {
+  border: 5px solid blue;
+  width:  200px;
+  height: 100px;
+}
+.bb {
+  border: 2px solid black;
+}
+canvas, img {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+}
+
+</style>
+
+<script type="text/javascript" src="webassets/jszip.min.js"></script>
+<script type="text/javascript" src="webassets/jszip-utils.min.js"></script>
+
+<div class="bb">
+<canvas width="150" height="150" id="frame"></canvas>
+</div>
+<div class="bb">
+    <select onchange="changeAnim()" id="anims" name="anims"></select>
+    <select id="direct" name="direct">
+        <option value="0">d</option>
+        <option value="1">dr</option>
+        <option value="2">r</option>
+        <option value="3">ur</option>
+        <option value="4">u</option>
+        <option value="5">ul</option>
+        <option value="6">l</option>
+        <option value="7">dl</option>
+    </select>
+    scale <select onchange="changeScale()" id="scale">
+        <option value="1">1x</option>
+        <option value="2">2x</option>
+        <option value="3">3x</option>
+        <option value="4">4x</option>
+    </select>
+    speed <select onchange="changeSpeed()" id="speed">
+        <option value="1">1x</option>
+        <option value="2">0.5x</option>
+        <option value="4">0.25x</option>
+    </select>
+    <input type="button" onclick="startDraw()" value="Start">
+    <input type="button" onclick="stopDraw()" value="Stop">
+    <input type="button" onclick="stepDraw()" value="Step">
+    <input onchange="changeChkDraw()" type="checkbox" id="chkshadow" checked>
+    <label for="chkshadow">Draw Shadow</label>
+    <input onchange="changeChkDraw()" type="checkbox" id="chkoffsets">
+    <label for="chkoffsets">Offsets</label>
+    <input onchange="changeChkDraw()" type="checkbox" id="chkbackground" checked>
+    <label for="chkbackground">Backround</label>
+</div>
+<div class="bb">
+    <div id="optHolder"></div>
+    X<input onchange="changeTweek(this)" type="number" name="offx" id="offx" min="-100" max="100">
+    Y<input onchange="changeTweek(this)" type="number" name="offy" id="offy" min="-100" max="100">
+    T<input onchange="changeTweek(this)" type="number" name="offt" id="offt" min="0" max="200">
+</div>
+
+<div id="drop_zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" width="200" height="200"><p>drop zip</p></div>
+<label for="upfile">Select a file:</label>
+<input type="file" id="upfile" name="upfile" onchange="filesHandler(this.files)">
+
+<script>
+
+//################ Droping / selecting
+
+async function dropHandler(ev) {
+    ev.preventDefault();
+
+    if (ev.dataTransfer.items[0].kind === 'file'){
+        if (ev.dataTransfer.items[0].type == "application/x-zip-compressed"){
+
+            var file = ev.dataTransfer.items[0].getAsFile();
+
+            stopDraw();
+            sprite = await loadSprite(file.arrayBuffer());
+            fillSelect(sprite);
+            startDraw();
+
+        }else if (ev.dataTransfer.items[0].type == "image/png"){
+            var file = ev.dataTransfer.items[0].getAsFile();
+            fname = file.name;
+
+            if (fname.split("-")[0] in sprite["animations"]){
+                sprite["animations"]["img"] = await file.getBinaryContent;
+            }
+        }
+    }
+
+    ev.dataTransfer.items.clear();
+}
+
+// Prevent default behavior (Prevent file from being opened)
+function dragOverHandler(ev) {
+    ev.preventDefault();
+}
+
+async function filesHandler(file){
+    
+    stopDraw();
+    sprite = await loadSprite(file[0].arrayBuffer());
+    fillSelect(sprite);
+    startDraw();
+}
+
+//################ Loading Files
+
+async function loadZip(content){
+    
+    //TODO try
+    let result = await JSZip.loadAsync(content);
+    return result;
+}
+
+    //this is used to load the starting pooch
+    async function loadStartingSprite(){
+
+        let zip = await loadZip(JSZipUtils.getBinaryContent("sprite-0261.zip"));
+
+        let xmldata = await zip.file("AnimData.xml").async("text");
+        let parser = new DOMParser();
+        let animData = parser.parseFromString(xmldata,"text/xml");
+
+        return generateSprite(zip, animData);
+    }
+
+    async function loadSprite(content){
+
+        let zip = await loadZip(content);
+
+        let xmldata = await zip.file("AnimData.xml").async("text");
+        let parser = new DOMParser();
+        let animData = parser.parseFromString(xmldata,"text/xml");
+
+        return generateSprite(zip, animData);
+    }
+
+//##################### Main Sprite holder manipulation
+
+//This loads the base64 image into an img we can use later
+async function getImg(imgb64){
+
+    return new Promise((resolve, reject) => {
+        let img = new Image();
+
+        img.onload = function(){
+            resolve(img);
+        };
+
+        img.onerror = reject;
+        img.src = "data:image/png;base64," + imgb64;
+    })
+}
+
+//generates a single animation for the sprite
+async function generateAnim(zip, name, animTag){
+
+    let animation = {};
+
+    animation['name'] = name;
+    animation['frameWidth'] = animTag.getElementsByTagName("FrameWidth")[0].innerHTML;
+    animation['frameHeight'] = animTag.getElementsByTagName("FrameHeight")[0].innerHTML;
+    animation['frameWidthHalf'] = Math.round(animation['frameWidth'] / 2); //so i dont have to calc each frame
+    animation['frameHeightHalf'] = Math.round(animation['frameHeight'] / 2);
+    if (animTag.getElementsByTagName("HitFrame")[0])
+        animation['hitFrame'] = animTag.getElementsByTagName("HitFrame")[0].innerHTML;
+    if (animTag.getElementsByTagName("ReturnFrame")[0])
+        animation['returnFrame'] = animTag.getElementsByTagName("ReturnFrame")[0].innerHTML;
+    animation['framesTime'] = [];
+
+    let durations = animTag.getElementsByTagName("Durations")[0].children;
+
+    for(j = 0; j < durations.length; j++) {
+        animation['framesTime'] = animation['framesTime'].concat(parseInt(durations[j].innerHTML));
+    }
+
+    animation['offX'] = new Array(durations.length).fill(0);
+    animation['offY'] = new Array(durations.length).fill(0);
+
+    let imgb64 = await zip.file(name + "-Anim.png").async("base64");
+    let imgb64off = await zip.file(name + "-Offsets.png").async("base64");
+    let imgb64sha = await zip.file(name + "-Shadow.png").async("base64");
+
+    animation['img'] = await getImg(imgb64);
+    animation['imgoff'] = await getImg(imgb64off);
+    animation['imgsha'] = await getImg(imgb64sha);
+
+    return animation;
+}
+
+//generates th big container with all the animations
+async function generateSprite(zip, animData){
+
+    let sprite = {};
+    
+    sprite['shadow'] = animData.getElementsByTagName("ShadowSize")[0].innerHTML;
+    sprite['animations'] = {};
+
+    let animTags = animData.getElementsByTagName("Anim");
+
+    for(let i = 0; i < animTags.length; i++) {
+
+        let name = animTags[i].getElementsByTagName("Name")[0].innerHTML;
+
+        if (animTags[i].getElementsByTagName("CopyOf")[0]){
+
+            //sometimes the sprite is already loaded
+            if (sprite['animations'][animTags[i].getElementsByTagName("CopyOf")[0].innerHTML]){
+                sprite['animations'][name] = sprite['animations'][animTags[i].getElementsByTagName("CopyOf")[0].innerHTML];
+                sprite['animations'][name]['name'] = name;
+            } else{
+                //sometimes there is not, some juggling is required
+                for (pname in animData.getElementsByTagName("Name")){
+                    if (animData.getElementsByTagName("Name")[pname].innerHTML == animTags[i].getElementsByTagName("CopyOf")[0].innerHTML){
+                        sprite['animations'][name] = await generateAnim(zip, animData.getElementsByTagName("Name")[pname].innerHTML, animData.getElementsByTagName("Name")[pname].parentElement);
+                        sprite['animations'][name]['name'] = name;
+                        break
+                    }
+                }
+            }
+
+            continue;
+        }
+
+        sprite['animations'][name] = await generateAnim(zip, name, animTags[i]);
+    }
+
+    return sprite;
+}
+
+//##################### GUI Stuff
+
+//Anims select
+function fillSelect(){
+    
+    selectanims.innerHTML = ""
+
+    iterable = Object.keys(sprite['animations']);
+    for (i in iterable){
+
+        if(iterable[i] == "length") continue;
+
+        let option = document.createElement("option");
+        option.innerHTML = iterable[i];
+        option.setAttribute("value", iterable[i]);
+        selectanims.appendChild(option);
+    }
+}
+
+//when the animation selector changes
+function changeAnim(){
+    fillFrameHolder();
+    restartDraw();
+}
+
+//div optHolder
+function fillFrameHolder(){
+
+    let holder = document.getElementById("optHolder");
+    holder.innerHTML = "";
+    for (i in sprite['animations'][selectanims.value]['framesTime']){
+        
+        let input = document.createElement("input");
+        input.setAttribute("type","radio");
+        input.setAttribute("name","frame");
+        input.setAttribute("id","frame"+i);
+        input.setAttribute("onchange","changeSelectedFrame("+i+")");
+        input.setAttribute("value",i);
+        holder.appendChild(input)
+        let label = document.createElement("label");
+        label.setAttribute("for",i);
+        label.innerHTML = "Frame " + i;
+        holder.appendChild(label);
+        holder.appendChild(document.createElement("br"));
+    }
+    holder.firstChild.setAttribute("checked","true");
+
+    changeSelectedFrame(0)
+}
+
+function getSelectedFrame(){
+    for (i in document.getElementById("optHolder").getElementsByTagName("input")){
+        if (document.getElementById("optHolder").getElementsByTagName("input")[i].checked){
+            return i;
+        }
+    }
+}
+
+//when the frame is changed
+function changeSelectedFrame(frame){
+
+    let eoffx = document.getElementById("offx");
+    let eoffy = document.getElementById("offy");
+    let eofft = document.getElementById("offt");
+    
+    eoffx.value = sprite['animations'][selectanims.value]['offX'][frame];
+    eoffy.value = sprite['animations'][selectanims.value]['offY'][frame];
+    eofft.value = sprite['animations'][selectanims.value]['framesTime'][frame];
+
+    document.getElementById("frame" + frame).checked = true;
+}
+
+//when a tweek is changed
+function changeTweek(element){
+
+    let frame = getSelectedFrame();
+    
+    switch (element.name) {
+        case "offx":
+            sprite['animations'][selectanims.value]['offX'][frame] = element.value;
+            break;
+        case "offy":
+            sprite['animations'][selectanims.value]['offX'][frame] = element.value;
+            break;
+        case "offt":
+            sprite['animations'][selectanims.value]['framesTime'][frame] = element.value;
+            break;
+    }
+}
+
+function changeChkDraw(){
+    drawShadow = document.getElementById('chkshadow').checked;
+    drawOffset = document.getElementById('chkoffsets').checked;
+    drawBackground = document.getElementById('chkbackground').checked;
+}
+
+function changeScale(){
+    animscale = document.getElementById('scale').value;
+    canv = document.getElementById('frame');
+
+    canv.height = 150 * animscale;
+    canv.width = 150 * animscale;
+}
+
+function changeSpeed(){
+    animspeed = document.getElementById('speed').value;
+
+    restartDraw()
+}
+
+//############################ Drawing
+
+function drawFrame(){
+
+    if (animj == 0){
+        ctx.clearRect(0, 0, 200 * animscale, 200 * animscale);
+        ctx.imageSmoothingEnabled = false;
+        
+        let x = (75 - sprite["animations"][selectanims.value]['frameWidthHalf']) * animscale;
+        let y = (75 - sprite["animations"][selectanims.value]['frameHeightHalf']) * animscale;
+        let w = sprite["animations"][selectanims.value]['frameWidth'];
+        let h = sprite["animations"][selectanims.value]['frameHeight'];
+        let ox = sprite["animations"][selectanims.value]['offX'][animi];
+        let oy = sprite["animations"][selectanims.value]['offY'][animi];
+        let origx = sprite["animations"][selectanims.value]['frameWidth'] * animi;
+
+        
+        if (drawBackground) ctx.drawImage(backimg, backoffx * animscale, backoffy * animscale, 240 * animscale, 240 * animscale);
+
+        if (drawShadow) ctx.drawImage(sprite["animations"][selectanims.value]['imgsha'], origx, selectdirect.value * h, w, h,
+        x + ox * animscale, y + oy * animscale, w * animscale, h * animscale);
+
+        ctx.drawImage(sprite["animations"][selectanims.value]['img'], origx, selectdirect.value * h, w, h,
+        x + ox * animscale, y + oy * animscale, w * animscale, h * animscale);
+
+        if (drawOffset) ctx.drawImage(sprite["animations"][selectanims.value]['imgoff'], origx, selectdirect.value * h, w, h,
+        x + ox * animscale, y + oy * animscale, w * animscale, h * animscale);
+    }
+
+    animj++;
+    if(animj >= sprite["animations"][selectanims.value]['framesTime'][animi] * animspeed){
+        animi++;
+        animj = 0;
+    }
+    if(animi >= animmaxi) animi = 0;
+
+    if(!animstop) requestAnimationFrame(drawFrame);
+}
+
+function startDraw(){
+
+    animmaxi = sprite["animations"][selectanims.value]['framesTime'].length;
+    animi = 0;
+    animj = 0;
+    animstop = false;
+
+    animation = requestAnimationFrame(drawFrame);
+}
+
+function stopDraw(){
+
+    animstop = true;
+}
+
+function restartDraw(){
+
+    stopDraw();
+    setTimeout(startDraw, 100);
+}
+
+function stepDraw(){
+
+    stopDraw();
+    
+    animj = 0;
+    animi++;
+    if(animi >= sprite["animations"][selectanims.value]['framesTime'].length) animi = 0;
+
+    changeSelectedFrame(animi)
+    setTimeout(drawFrame(), 100);
+}
+
+    //########################### Script start
+
+    var sprite;
+    var ctx = document.getElementById('frame').getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    var selectanims = document.getElementById('anims');
+    var selectdirect = document.getElementById('direct');
+    var backimg= new Image();
+    backimg.src = "webassets/floor.png";
+
+    sprite = loadStartingSprite();
+
+    var drawOffset = false, drawShadow = true, drawBackground = true;
+    var animi = 0, animj = 0, animmaxi, animstop = false, animscale = 1, animspeed=1;
+    var backoffx = -9, backoffy = -7;
+    
+    bootstrap();
+
+    async function bootstrap(){
+
+        sprite = await sprite;
+
+        fillSelect(sprite);
+        fillFrameHolder();
+
+        animmaxi = sprite["animations"][selectanims.value]['framesTime'].length
+
+        startDraw();
+    }
+
+</script>
+
+<div>
+    
+</div>

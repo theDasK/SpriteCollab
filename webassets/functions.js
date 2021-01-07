@@ -77,3 +77,30 @@ async function populateListTable(tablebody, creator, gen, official, filled, inco
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function chopImages(img,){
+
+    let empty = new Image();
+    img.src = "webassets/empty.png";
+
+    for (i in 40){
+        
+    }
+}
