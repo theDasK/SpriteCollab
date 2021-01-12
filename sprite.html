@@ -133,7 +133,7 @@ async function filesHandler(file){
 
 async function loadZip(content){
     
-    result = await JSZip.loadAsync(content);
+    result = await JSZip.loadAsync(await content);
     return result;
 }
 
@@ -172,19 +172,20 @@ async function loadStartingSprite(){
     return generateSprite(zip, animData);
 }
 
-async function loadSprite(content){
+async function loadSprite(zip){
 
     stopDraw();
-    let zip = await loadZip(content);
+
+    zip = await zip;
 
     let xmldata = await zip.file("AnimData.xml").async("text");
     let parser = new DOMParser();
     let animData = parser.parseFromString(xmldata,"text/xml");
 
+    sprite = await generateSprite(zip, animData);
+
     fillSelect(sprite);
     startDraw();
-
-    return generateSprite(zip, animData);
 }
 
 function downloadFrame(){
@@ -497,6 +498,7 @@ function fillSelect(){
 
 //when the animation selector changes
 function changeAnim(){
+    fillDirectionSelect();
     fillFrameHolder();
     restartDraw();
 }
@@ -527,6 +529,19 @@ function fillFrameHolder(){
 
     changeSelectedFrame(0)
 }
+
+function fillDirectionSelect(){
+    select = document.getElementById("direct")
+    select.innerHTML = ""
+
+    if (sprite['animations'][selectanims.value]['directions'] == 1){
+        select.innerHTML = "<option value='0'>only</option>";
+    } else {
+        select.innerHTML = "<option value='0'>d</option><option value='1'>dr</option><option value='2'>r</option><option value='3'>ur</option><option value='4'>u</option><option value='5'>ul</option><option value='6'>l</option><option value='7'>dl</option>"
+    }
+    direct.getElementsByTagName("option")[0].checked
+}
+
 
 function getSelectedFrame(){
     for (i in document.getElementById("optHolder").getElementsByTagName("input")){
