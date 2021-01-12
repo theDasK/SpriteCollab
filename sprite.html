@@ -197,7 +197,7 @@ function downloadFrame(){
     temp.canvas.width =  w * fn;
     temp.canvas.height = h * 8;
     
-    for(let j = 0; j < 8; j++){
+    for(let j = 0; j < sprite['animations'][selectanims.value]['directions']; j++){
         for(let i = 0; i < fn; i++){
             temp.drawImage(sprite['animations'][selectanims.value]['img'][j][i], sprite['animations'][selectanims.value]['offImg'][j][i][0] + i * w, sprite['animations'][selectanims.value]['offImg'][j][i][1] + j * h, w, h);
         }
@@ -221,7 +221,7 @@ function downloadShadow(){
     temp.canvas.width =  w * fn;
     temp.canvas.height = h * 8;
 
-    for(let j = 0; j < 8; j++){
+    for(let j = 0; j < sprite['animations'][selectanims.value]['directions']; j++){
         for(let i = 0; i < fn; i++){
             let sx = sprite['animations'][selectanims.value]['imgsha'][j][i][0];
             let sy = sprite['animations'][selectanims.value]['imgsha'][j][i][1];
@@ -250,7 +250,7 @@ function downloadOffsets(){
     temp.canvas.width =  w * fn;
     temp.canvas.height = h * 8;
 
-    for(let j = 0; j < 8; j++){
+    for(let j = 0; j < sprite['animations'][selectanims.value]['directions']; j++){
         for(let i = 0; i < fn; i++){
 
             sprite['animations'][selectanims.value]['offOff'][j][i]
