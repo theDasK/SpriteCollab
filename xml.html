@@ -1,0 +1,264 @@
+<style>
+    #drop_zone {
+      border: 5px solid blue;
+      width:  200px;
+      height: 100px;
+    }
+    .bb {
+      border: 2px solid black;
+    }
+    canvas, img {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: pixelated;
+    }
+    
+</style>
+<div class="bb">
+    <input type="button" onclick="makeNewXML()" value="Make a New XML">
+
+    <div id="drop_zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" width="200" height="200"><p>drop xml</p></div>
+    <label for="upfile">Select a file:</label>
+    <input type="file" id="upfile" name="upfile" onchange="filesHandler(this.files)">
+    <input type="button" onclick="downloadXML()" value="Download current XML" disabled>
+</div>
+<div class="bb">
+    Animation
+    <div id=containerAnim class="bb"></div>
+    <input id="animAdd" type="button" onclick="" value="Add Animation" disabled>  <br>
+    <input type="animRemove" onclick="" value="Remove Animation" disabled>  <br> <hr>
+
+    Name <input id="animName" type="text" onchange=""> <br>
+    Index <input id="animIdx" type="number" onchange="" min="0" max="43"> <br>
+    <input id="animIsCopy" type="checkbox" onchange="swapAnimFieldsEnabled('swap');"> Is it a copy? <br>
+    Copy of <input id="animCopy" type="text" onchange="" disabled> <br>
+    Frame Width <input id="animFrameW" type="number" onchange="" min="8" max="200"> <br>
+    Frame Height <input id="animFrameH" type="number" onchange="" min="8" max="200"> <br>
+    <input id="animHasRush" type="checkbox" onchange=""> Rush Frame <input id="animRush" type="number" onchange="" min="0" max="43"> <br>
+    <input id="animHasHit" type="checkbox" onchange=""> Hit Frame <input id="animHit" type="number" onchange="" min="0" max="43"> <br>
+    <input id="animHasReturn" type="checkbox" onchange=""> ReturnFrame <input id="animReturn" type="number" onchange="" min="0" max="43">
+</div>
+<div class="bb">
+    Frames
+    <div id=containerFrames class="bb"></div>
+
+    Duration <input id="frameDuration" type="number" onchange="" min="0" max="200"> <br>
+    <input id="frameAdd" type="button" onclick="" value="Add Frame" disabled>  <br>
+    <input id="frameRemove" type="button" onclick="" value="Remove Frame" disabled>  <br>
+    Size of file: <span id="frameSize"></span>
+</div>
+<div class="bb">
+    <div id=containerErrors class="bb"></div>
+</div>
+
+<script>
+//################ Droping / selecting
+//load from drop
+async function dropHandler(ev) {
+    ev.preventDefault();
+
+    if (ev.dataTransfer.items[0].kind === 'file'){
+        if (ev.dataTransfer.items[0].type == "text/xml"){
+
+            let file = await ev.dataTransfer.items[0].getAsFile().text();
+
+            parseXML(file);
+        }
+    }
+
+    ev.dataTransfer.items.clear();
+}
+
+// Prevent default behavior (Prevent file from being opened)
+function dragOverHandler(ev) {
+    ev.preventDefault();
+}
+
+//load from file selector
+async function filesHandler(file){
+    
+    if (ev.dataTransfer.items[0].kind === 'file'){
+        if (ev.dataTransfer.items[0].type == "text/xml"){
+
+            let file = await file[0].text();
+
+            parseXML(file);
+        }
+    }
+}
+
+//############################## XML and main Sprite JSON handling
+
+function parseXML(xmldata){
+    let parser = new DOMParser();
+    let xml = parser.parseFromString(xmldata,"text/xml");
+
+    modified = false;
+
+    animData = convertXMLtoJson(xml);
+    fillContainerAnim();
+    fillAnimFields();
+}
+
+function convertXMLtoJson(xml){
+    json = {}
+
+    json['ShadowSize'] = xml.getElementsByTagName("ShadowSize")[0].innerHTML;
+    json['Anims'] = {};
+
+    let animTags = Array.prototype.slice.call(xml.getElementsByTagName("Anim"));
+    for (i in animTags){
+        console.log(i)
+
+        anim =  {};
+        
+        anim['Name'] = animTags[i].getElementsByTagName("Name")[0].innerHTML;
+        if (animTags[i].getElementsByTagName("Index")[0]) anim['Index'] = animTags[i].getElementsByTagName("Index")[0].innerHTML;
+
+        if (animTags[i].getElementsByTagName("CopyOf")[0]){
+
+            anim['CopyOf'] = animTags[i].getElementsByTagName("CopyOf")[0];
+        } else {
+
+            anim['CopyOf'] = null;
+            anim['FrameWidth'] = animTags[i].getElementsByTagName("FrameWidth")[0].innerHTML;
+            anim['FrameHeight'] = animTags[i].getElementsByTagName("FrameHeight")[0].innerHTML;
+
+            if (animTags[i].getElementsByTagName("RushFrame")[0]){
+                anim['RushFrame'] = animTags[i].getElementsByTagName("RushFrame")[0].innerHTML;
+            } else {
+                anim['RushFrame'] = null
+            }
+
+            if (animTags[i].getElementsByTagName("HitFrame")[0]){
+                anim['HitFrame'] = animTags[i].getElementsByTagName("HitFrame")[0].innerHTML;
+            } else {
+                anim['HitFrame'] = null
+            }
+
+            if (animTags[i].getElementsByTagName("ReturnFrame")[0]){
+                anim['ReturnFrame'] = animTags[i].getElementsByTagName("ReturnFrame")[0].innerHTML;
+            } else {
+                anim['ReturnFrame'] = null
+            }
+
+            durations = [];
+            durationTags = Array.prototype.slice.call(animTags[i].getElementsByTagName("Durations")[0].children)
+            for(j in durationTags){
+                durations = durations.concat(parseInt(durationTags[j].innerHTML));
+            }
+
+            anim['Durations'] = durations;
+        }
+
+        json['Anims'][anim['Name']] = anim;
+    }
+
+    return json;
+}
+
+function convertJsontoXML(json){
+    
+}
+
+function fillContainerAnim(){
+
+    let anims = animData['Anims']
+    let opt, container = document.getElementById("containerAnim")
+
+    container.innerHTML = "";
+
+    for(i in anims){
+
+        let input = document.createElement("input");
+        input.setAttribute("type","radio");
+        input.setAttribute("name","animation");
+        input.setAttribute("id","optAnim" + i);
+        //input.setAttribute("onchange","changeSelectedFrame("+i+")");
+        input.setAttribute("value",i);
+        container.appendChild(input);
+        
+        let label = document.createElement("label");
+        label.setAttribute("for","anim" + i);
+        label.innerHTML = i;
+        container.appendChild(label);
+
+        container.appendChild(document.createElement("br"));
+    }
+
+    input = document.getElementById("optAnim" + Object.keys(anims)[0]);
+    input.setAttribute("checked", true);
+}
+
+function fillAnimFields(){
+    anim = animData['Anims'][getSelectedRadio(document.getElementById("containerAnim"))];
+
+    document.getElementById("animName").value = anim['Name'];
+    document.getElementById("animIdx").value = anim['Index'];
+    
+    if(anim['CopyOf']){
+        document.getElementById("animIsCopy").checked = true;
+        document.getElementById("animCopy").value = anim['CopyOf'];
+
+        swapAnimFieldsEnabled(true);
+    } else {
+        document.getElementById("animIsCopy").checked = false;
+        document.getElementById("animFrameW").value = anim['FrameWidth'];
+        document.getElementById("animFrameH").value = anim['FrameHeight'];
+        if (anim['RushFrame']){
+            document.getElementById("animHasRush").checked = true;
+            document.getElementById("animRush").value = anim['RushFrame'];
+        } else {
+            document.getElementById("animHasRush").checked = false;
+            document.getElementById("animRush").value = "";
+        }
+        if (anim['HitFrame']){
+            document.getElementById("animHasHit").checked = true;
+            document.getElementById("animHit").value = anim['HitFrame'];
+        } else {
+            document.getElementById("animHasHit").checked = false;
+            document.getElementById("animHit").value = "";
+        }
+        if (anim['ReturnFrame']){
+            document.getElementById("animHasHit").checked = true;
+            document.getElementById("animHit").value = anim['ReturnFrame'];
+        } else {
+            document.getElementById("animHasHit").checked = false;
+            document.getElementById("animHit").value = "";
+        }
+
+        swapAnimFieldsEnabled(false);
+    }
+}
+
+function getSelectedRadio(container){
+    for (i in container.getElementsByTagName("input")){
+        if (container.getElementsByTagName("input")[i].checked){
+            return container.getElementsByTagName("input")[i].value;
+        }
+    }
+}
+
+function swapAnimFieldsEnabled(bool){
+    if (bool == "swap") bool = document.getElementById("animIsCopy").checked;
+
+    document.getElementById("animCopy").disabled = !bool;
+    document.getElementById("animFrameW").disabled = bool;
+    document.getElementById("animFrameH").disabled = bool;
+    document.getElementById("animHasRush").disabled = bool;
+    document.getElementById("animRush").disabled = bool;
+    document.getElementById("animHasHit").disabled = bool;
+    document.getElementById("animHit").disabled = bool;
+    document.getElementById("animHasReturn").disabled = bool;
+    document.getElementById("animReturn").disabled = bool;
+}
+
+function aaa(){
+    
+}
+
+
+
+var animData, modified = false;
+</script>
+
+<img>
