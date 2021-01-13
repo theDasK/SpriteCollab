@@ -78,7 +78,7 @@ canvas, img {
 <label for="upfile">Select a file:</label>
 <input type="file" id="upfile" name="upfile" onchange="filesHandler(this.files)">
 
-<input type="button" onclick="downloadXML()" value="Download XML" disabled>
+<input type="button" onclick="downloadXML()" value="Download XML">
 <input type="button" onclick="downloadFrame()" value="Download Frame">
 <input type="button" onclick="downloadShadow()" value="Download Shadow">
 <input type="button" onclick="downloadOffsets()" value="Download Offsets">
@@ -90,6 +90,11 @@ canvas, img {
 <script>
 
 //################ Droping / selecting
+
+function cloneObj(obj){
+
+    return JSON.parse(JSON.stringify(obj));
+}
 
 async function dropHandler(ev) {
     ev.preventDefault();
@@ -186,6 +191,36 @@ async function loadSprite(zip){
 
     fillSelect(sprite);
     startDraw();
+}
+
+function downloadXML(){ //ok, im having poblems creating a real xml and Im a bit drunk... sue me
+    let xml = '<?xml version="1.0" ?>\n<AnimData>\n\t<ShadowSize>' + sprite['shadow'] + '</ShadowSize>\n\t<Anims>';
+    for (i in sprite['animations']){
+        xml += '\n\t\t<Anim>\n\t\t\t<Name>' + sprite['animations'][i]['name'] + '</Name>';
+        if (sprite['animations'][i]["index"]) xml += '\n\t\t\t<Index>' + sprite['animations'][i]['index'] + '</Index>';
+        if (sprite['animations'][i]["CopyOf"]){
+            xml += '\n\t\t\t<CopyOf>' + sprite['animations'][i]["CopyOf"] + '</CopyOf>\n\t\t</Anim>';
+            continue;
+        }
+        xml += '\n\t\t\t<FrameWidth>'+sprite['animations'][i]["frameWidth"]+'</FrameWidth>\n\t\t\t<FrameHeight>'+sprite['animations'][i]["frameHeight"]+'</FrameHeight>';
+        if (sprite['animations'][i]["rushFrame"]) xml += '\n\t\t\t<RushFrame>'+sprite['animations'][i]["rushFrame"]+'</RushFrame>';
+        if (sprite['animations'][i]["hitFrame"]) xml += '\n\t\t\t<HitFrame>'+sprite['animations'][i]["hitFrame"]+'</HitFrame>';
+        if (sprite['animations'][i]["returnFrame"]) xml += '\n\t\t\t<ReturnFrame>'+sprite['animations'][i]["returnFrame"]+'</ReturnFrame>';
+        xml += "\n\t\t\t<Durations>";
+        for (j in sprite['animations'][i]["framesTime"]){
+            xml += '\n\t\t\t\t<Duration>'+sprite['animations'][i]['framesTime'][j]+'</Duration>';
+        }
+        xml += "\n\t\t\t</Durations>\n\t\t</Anim>";
+    }
+    xml += "\n\t</Anims>\n</AnimData>";
+
+    var downloadLink = document.createElement("a");
+    downloadLink.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(xml);
+    downloadLink.download = "AnimData.xml";
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 }
 
 function downloadFrame(){
@@ -314,11 +349,12 @@ async function generateAnim(zip, name, animTag){
 
     let animation = {};
 
-    animation['name'] = name;
     animation['frameWidth'] = parseInt(animTag.getElementsByTagName("FrameWidth")[0].innerHTML);
     animation['frameHeight'] = parseInt(animTag.getElementsByTagName("FrameHeight")[0].innerHTML);
     animation['frameWidthHalf'] = Math.trunc(animation['frameWidth'] / 2); //so i dont have to calc each frame
     animation['frameHeightHalf'] = Math.trunc(animation['frameHeight'] / 2);
+    if (animTag.getElementsByTagName('RushFrame')[0])
+        animation['rushFrame'] = animTag.getElementsByTagName("RushFrame")[0].innerHTML;
     if (animTag.getElementsByTagName('HitFrame')[0])
         animation['hitFrame'] = animTag.getElementsByTagName("HitFrame")[0].innerHTML;
     if (animTag.getElementsByTagName('ReturnFrame')[0])
@@ -450,19 +486,27 @@ async function generateSprite(zip, animData){
     for(let i = 0; i < animTags.length; i++) {
 
         let name = animTags[i].getElementsByTagName("Name")[0].innerHTML;
+        let index
+        if (animTags[i].getElementsByTagName('Index')[0]){
+            index = animTags[i].getElementsByTagName("Index")[0].innerHTML;
+        }
 
         if (animTags[i].getElementsByTagName("CopyOf")[0]){
 
             //sometimes the sprite is already loaded
             if (sprite['animations'][animTags[i].getElementsByTagName("CopyOf")[0].innerHTML]){
-                sprite['animations'][name] = sprite['animations'][animTags[i].getElementsByTagName("CopyOf")[0].innerHTML];
+                sprite['animations'][name] = cloneObj(sprite['animations'][animTags[i].getElementsByTagName("CopyOf")[0].innerHTML]);
+                sprite['animations'][name]["CopyOf"] = animTags[i].getElementsByTagName("CopyOf")[0].innerHTML;
                 sprite['animations'][name]['name'] = name;
+                if (animTags[i].getElementsByTagName('Index')[0]) sprite['animations'][name]['index'] = index;
             } else{
                 //sometimes there is not, some juggling is required
                 for (pname in animData.getElementsByTagName("Name")){
                     if (animData.getElementsByTagName("Name")[pname].innerHTML == animTags[i].getElementsByTagName("CopyOf")[0].innerHTML){
                         sprite['animations'][name] = await generateAnim(zip, animData.getElementsByTagName("Name")[pname].innerHTML, animData.getElementsByTagName("Name")[pname].parentElement);
+                        sprite['animations'][name]["CopyOf"] = animTags[i].getElementsByTagName("CopyOf")[0].innerHTML;
                         sprite['animations'][name]['name'] = name;
+                        if (animTags[i].getElementsByTagName('Index')[0]) sprite['animations'][name]['index'] = index;
                         break
                     }
                 }
@@ -472,6 +516,8 @@ async function generateSprite(zip, animData){
         }
 
         sprite['animations'][name] = await generateAnim(zip, name, animTags[i]);
+        sprite['animations'][name]['name'] = name;
+        if (animTags[i].getElementsByTagName('Index')[0]) sprite['animations'][name]['index'] = index;
     }
 
     return sprite;
