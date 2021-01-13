@@ -228,7 +228,7 @@ function downloadShadow(){
             let osx = sprite['animations'][selectanims.value]['offSha'][j][i][0];
             let osy = sprite['animations'][selectanims.value]['offSha'][j][i][1];
 
-            temp.drawImage(shadowsimg, 1, 161, 22, 8, sx + osx - 12, sy + osy - 5, 22, 8);
+            temp.drawImage(shadowsimg, 1, 161, 22, 8, i*w + sx + osx - 12, j*h + sy + osy - 5, 22, 8);
         }
     }
 
