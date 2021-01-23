@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns#">
+<head>
+    <!-- <link rel="stylesheet" href="webassets/styles.css"> -->
+    <title>The PMD Portrait Repository</title>
+
+    <link rel="icon" 
+        type="image/png" 
+        href="webassets/favicon.png" />
+    
+    <meta charset="utf-8"/>
+    <meta name="description" content="The PMD Portrait Repository archives the great art of many artist making portraits based on Pokemon Mystery Dungeon"/>
+    <meta name="author" content="u/TheDasK" />
+    <meta name="robots" content="index,nofollow" />
+        
+    <style>
+        #drop_zone {
+            border: 5px solid blue;
+            width:  200px;
+            height: 100px;
+        }
+        .bb {
+            border: 2px solid black;
+        }
+        canvas, img {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: pixelated;
+        }
+
+        #progressBar {
+            width: 80%;
+            background-color: grey;
+        }
+
+        #progressBarFill {
+            width: 1%;
+            height: 30px;
+            background-color: green;
+        }
+
+        .arrowsdivs {
+            display: inline-block;
+            width: 120px;
+            overflow: hidden;
+        }
+    </style>
+
+    <script type="text/javascript" src="webassets/jszip.min.js"></script>
+    <script type="text/javascript" src="webassets/jszip-utils.min.js"></script>
+    <script type="text/javascript" src="webassets/editor.js"></script>
+</head>
+<body>
+    <input id="butNewAnim" type="button" onclick="createEmptyZip()" value="Create a New Zip File">
+    <label for="upfile">Upload a file:</label>
+    <input type="file" id="upfile" name="upfile" onchange="loadFromZip(this.files[0])">
+
+    <div class="bb">
+    <canvas id="frame" width="150" height="150"></canvas>
+    </div>
+    <div id="progressBar">
+        <div id="progressBarFill"><p id="progressBarText">Loading</p></div>
+    </div>
+    <div class="bb">
+        <select id="selectAnim" onchange="changeAnim()" name="anims"></select>
+        <select id="selectDirect" onchange="changeDirection()" name="selectDirect">
+            <option value="0">d</option>
+            <option value="1">dr</option>
+            <option value="2">r</option>
+            <option value="3">ur</option>
+            <option value="4">u</option>
+            <option value="5">ul</option>
+            <option value="6">l</option>
+            <option value="7">dl</option>
+        </select>
+        scale <select onchange="changeScale()" id="selectScale">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+        </select>
+        speed <select onchange="changeSpeed()" id="selectSpeed">
+            <option value="1">1x</option>
+            <option value="2">0.5x</option>
+            <option value="4">0.25x</option>
+            <option value="10">0.1x</option>
+        </select>
+        <input type="button" onclick="startDraw()" value="Start">
+        <input type="button" onclick="stopDraw()" value="Stop">
+        <input type="button" onclick="stepDraw()" value="Step">
+        <input onchange="changeChkDraw()" type="checkbox" id="chkshadow" checked>
+        <label for="chkshadow">Draw Shadow</label>
+        <input onchange="changeChkDraw()" type="checkbox" id="chkbackground" checked>
+        <label for="chkbackground">Backround</label>
+        <input onchange="changeChkDraw()" type="checkbox" id="chkoffsets">
+        <label for="chkoffsets">Offsets</label>
+        <input onchange="changeChkHighlight()" type="checkbox" id="chkhighlight">
+        <label for="chkhighlight">Offsets Highlight</label>
+    </div>
+    <div class="bb">
+        <p>Animation: <span id="animName">None</span></p>
+
+        <label for="numbIndex">Index: </label>
+        <input id="numbIndex" type="number" onclick="changeIndex()" min="0" max="43">
+        <input id="butIndex" type="button" onclick="applyIndex()" value="Apply">
+
+        <input id="chkCopyOf" onchange="changeChkCopyOf()" type="checkbox" name="cru">
+        <label for="chkCopyOf">Copy of: </label>
+        <select id="selCopyOf" name="direct"></select>
+        <input id="butCopyOf" type="button" onclick="applyCopyOf()" value="Apply"><br>
+
+        <label for="numbWidth">Width: </label>
+        <input id="numbWidth" type="number" min="8" max="200" step="2">
+        <label for="numbHeight">Height: </label>
+        <input id="numbHeight" type="number" min="8" max="200" step="2">
+        <input id="butHeight" type="button" onclick="applySizeChange()" value="Apply"><br>
+
+        <input id="chkRushFrame" onchange="changeSpecialFrame()" type="checkbox">
+        <label for="chkRushFrame">Rush Frame</label>
+        <input id="numbRushFrame" onchange="changeSpecialFrame('rush')" type="number" min="0" max="20" disabled>
+
+        <input id="chkHitFrame" onchange="changeSpecialFrame()" type="checkbox">
+        <label for="chkHitFrame">Hit Frame</label>
+        <input id="numbHitFrame" onchange="changeSpecialFrame('hit')" type="number" min="0" max="20" disabled>
+
+        <input id="chkReturnFrame" onchange="changeSpecialFrame()" type="checkbox">
+        <label for="chkReturnFrame">Return Frame</label>
+        <input id="numbReturnFrame" onchange="changeSpecialFrame('return')" type="number" min="0" max="20" disabled> 
+
+        <input type="button" onclick="addAnimation()" value="Create Animation">
+        <input id="butDelAnim" type="button" onclick="removeAnimation()" value="Remove Animation"><br>
+        <input id="butImportAnim" type="button" onclick="removeAnimation()" value="Import Sprite Sheet"> 
+        <input id="butSprites" type="button" onclick="downloadSprites()" value="Download Sprite Sheet">
+        <input id="butSprites" type="button" onclick="downloadHelper()" value="Download Sprite Sheet Helper">
+        <input id="butShadow" type="button" onclick="downloadShadow()" value="Download Shadow">
+        <input id="butOffsets" type="button" onclick="downloadOffsets()" value="Download Offsets"><br>
+        Import Spritesheet: <input type="file" id="upfileSprites" onchange="importSpriteSheet(this)">
+        <div id="divNewAnimation" class="bb" hidden>
+            <label for="selNewName">Name: </label>
+            <select id="selNewName" onchange="changeNewName()"></select>
+            <label for="numbNewIndex">Index: </label>
+            <input id="numbNewIndex" type="number" onclick="" min="0" max="43">
+            <label for="numbNewWidth">Width: </label>
+            <input id="numbNewWidth" type="number" min="8" max="200" step="2" value="40">
+            <label for="numbNewHeight">Height: </label>
+            <input id="numbNewHeight" type="number" min="8" max="200" step="2" value="40"> <br>
+            <label for="numbNewFrames"># of Frames: </label>
+            <input id="numbNewFrames" type="number" min="1" max="50" value="1">
+            <input id="chkNewDirection" type="checkbox">
+            <label for="chkNewDirection">Only 1 Direction? </label><br>
+            <input id="butNewAnim" type="button" onclick="createAnimation()" value="Apply">
+            <input type="button" onclick="document.getElementById('divNewAnimation').hidden = true;" value="Cancel">
+        </div>
+    </div>
+    <div class="bb">
+        Frames:
+        <div id="optHolder"></div>
+        <div id="divFramesTweek">
+            <div class="arrowsdivs">
+                Sprite
+                <table>
+                    <tr><td onclick="tweekSprite('sp', 'lu')">↖</td><td onclick="tweekSprite('sp', 'u')">↑</td><td onclick="tweekSprite('sp', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('sp', 'l')">←</td><td></td><td onclick="tweekSprite('sp', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('sp', 'ld')">↙</td><td onclick="tweekSprite('sp', 'd')">↓</td><td onclick="tweekSprite('sp', 'dr')">↘</td></tr>
+                </table>
+            </div>
+            <div class="arrowsdivs">
+                Shadow
+                <table>
+                    <tr><td onclick="tweekSprite('sw', 'lu')">↖</td><td onclick="tweekSprite('sw', 'u')">↑</td><td onclick="tweekSprite('sw', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('sw', 'l')">←</td><td></td><td onclick="tweekSprite('sw', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('sw', 'ld')">↙</td><td onclick="tweekSprite('sw', 'd')">↓</td><td onclick="tweekSprite('sw', 'dr')">↘</td></tr>
+                </table>
+            </div>
+            <div class="arrowsdivs">
+                Right Hand (Red)
+                <table>
+                    <tr><td onclick="tweekSprite('or', 'lu')">↖</td><td onclick="tweekSprite('or', 'u')">↑</td><td onclick="tweekSprite('or', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('or', 'l')">←</td><td></td><td onclick="tweekSprite('or', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('or', 'ld')">↙</td><td onclick="tweekSprite('or', 'd')">↓</td><td onclick="tweekSprite('or', 'dr')">↘</td></tr>
+                </table>
+            </div>
+            <div class="arrowsdivs">
+                Head (Green)
+                <table>
+                    <tr><td onclick="tweekSprite('og', 'lu')">↖</td><td onclick="tweekSprite('og', 'u')">↑</td><td onclick="tweekSprite('og', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('og', 'l')">←</td><td></td><td onclick="tweekSprite('og', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('og', 'ld')">↙</td><td onclick="tweekSprite('og', 'd')">↓</td><td onclick="tweekSprite('og', 'dr')">↘</td></tr>
+                </table>
+            </div>
+            <div class="arrowsdivs">
+                Left Hand (Blue)
+                <table>
+                    <tr><td onclick="tweekSprite('ob', 'lu')">↖</td><td onclick="tweekSprite('ob', 'u')">↑</td><td onclick="tweekSprite('ob', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('ob', 'l')">←</td><td></td><td onclick="tweekSprite('ob', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('ob', 'ld')">↙</td><td onclick="tweekSprite('ob', 'd')">↓</td><td onclick="tweekSprite('ob', 'dr')">↘</td></tr>
+                </table>
+            </div>
+            <div class="arrowsdivs">
+                Body (Black)
+                <table>
+                    <tr><td onclick="tweekSprite('ok', 'lu')">↖</td><td onclick="tweekSprite('ok', 'u')">↑</td><td onclick="tweekSprite('ok', 'ur')">↗</td></tr>
+                    <tr><td onclick="tweekSprite('ok', 'l')">←</td><td></td><td onclick="tweekSprite('ok', 'r')">→</td></tr>
+                    <tr><td onclick="tweekSprite('ok', 'ld')">↙</td><td onclick="tweekSprite('ok', 'd')">↓</td><td onclick="tweekSprite('ok', 'dr')">↘</td></tr>
+                </table>
+            </div>
+        </div>
+        <input id="butAddFrame" type="button" onclick="createFrame()" value="Create Frame">
+        <input id="butRemoveFrame" type="button" onclick="removeFrame()" value="Remove Frame">
+    </div>
+
+    <div id="drop_zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" width="200" height="200" hidden><p>drop zip</p></div>
+
+    <input type="button" onclick="downloadXML()" value="Download XML">
+    <input type="button" onclick="downloadZip()" value="Download Zip">
+
+    <div class="bb">
+        <ul id="containerWarnings"></ul>
+    </div>
+
+    <script>
+
+    var wPMDSprite;
+    var dctx = document.getElementById('frame').getContext('2d');
+    var dOffsets = false, dShadow = true, dBackground = true;
+    var dAnim = "Walk", dDirection = 0, dFrame = 0, dWait = 0, dStop = false, dScale = 1, dSpeed=1;
+    var backoffx = -9, backoffy = -7;
+
+    var imgBackground = new Image();
+    imgBackground.src = "webassets/floor.png";
+    var imgShadows = new Image();
+    imgShadows.src = "webassets/shadows.png";
+
+    var offhighlight = false, offhighlightn = 0;
+    var offhighlightarray = ["rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)","rgb(0,255,255)","rgb(0,0,255)","rgb(255,0,255)"] //TODO: Change this into something better, its 2AM
+
+    var currProgress = 0, maxProgress = 1;
+    var activeErrors = [];
+
+    bootstrap();
+
+    async function bootstrap(){
+
+        wPMDSprite = await createPMDSpriteFromZip(await loadZip(JSZipUtils.getBinaryContent("sprite-0261.zip")));
+
+        fillSelect();
+        fillFrameHolder();
+    }
+
+
+
+    </script>
+    <div>
+    </div>
+</body>
+</html>
