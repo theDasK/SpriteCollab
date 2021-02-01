@@ -283,8 +283,23 @@ async function parseFramesfromIMG(fwidth, fheight, img){
             tempframe.canvas.height = fheight;
 
             tempframe.drawImage(img, i , j, fwidth, fheight, 0, 0, fwidth, fheight);
+            borders = findBorders(tempframe.canvas);
+            let offsets = [0,0];
 
-            frames.push(tempframe.canvas);
+            if (borders){
+
+                offsets = [borders[0], borders[2]];
+                let sw = borders[1] - borders[0];
+                let sh = borders[3] - borders[2];
+    
+                tempframe.clearRect(0,0,fwidth,fheight);
+                tempframe.canvas.width = sw;
+                tempframe.canvas.height = sh;
+    
+                tempframe.drawImage(img, i + borders[0], j + borders[2], sw, sh, 0 , 0, sw, sh);
+            }
+
+            frames.push([tempframe.canvas,offsets]);
         }
         directions.push(frames);
     }
@@ -296,7 +311,7 @@ async function parseShadowsFromZip(name, fwidth, fheight, zip){
 
     if (name + "-Shadow.png" in zip.files){         //check if the file exists
 
-        let b64 = await zip.file(name + "-Shadow.png").async("base64")
+        let b64 = await zip.file(name + "-Shadow.png").async("base64");
         let img = await getImgfromB64(b64);
         let tempctx = document.createElement("canvas").getContext("2d");
         tempctx.canvas.width = img.width;
@@ -438,10 +453,10 @@ function findBorders(img){
     }
 
     if (tempx == []){
-        return [null, null, null, null]
+        return null;
     }
 
-    return [tempy[0], tempy[tempy.length-1] + 1, Math.min(...tempx), Math.max(...tempx) + 1];
+    return [Math.min(...tempx), Math.max(...tempx) + 1, tempy[0], tempy[tempy.length-1] + 1];
 }
 
 function generateEmptyFrames (fwidth, fheight, n, d){
@@ -454,7 +469,7 @@ function generateEmptyFrames (fwidth, fheight, n, d){
             tempctx.canvas.width = fwidth;
             tempctx.canvas.height = fheight;
 
-            empty.push(tempctx.canvas);
+            empty.push([tempctx.canvas,[0,0]]);
         }
         direction.push(empty);
     }
@@ -504,7 +519,7 @@ function generateSpriteSheet(anim = dAnim){
         for(let i = 0; i < fn; i++){
             temp.drawImage(wPMDSprite.anims[anim].frames[j][i].sprite,
                 wPMDSprite.anims[anim].frames[j][i].spriteoffset[0] + i * w,
-                wPMDSprite.anims[anim].frames[j][i].spriteoffset[1] + j * h, w, h);
+                wPMDSprite.anims[anim].frames[j][i].spriteoffset[1] + j * h);
         }
     }
     return temp.canvas;
@@ -543,34 +558,36 @@ function generateOffsetsSheet(anim = dAnim){
             let offsetsr = wPMDSprite.anims[anim].frames[j][i].offsetsr;
             let offsetsg = wPMDSprite.anims[anim].frames[j][i].offsetsg;
             let offsetsb = wPMDSprite.anims[anim].frames[j][i].offsetsb;
+            let ox = wPMDSprite.anims[anim].frames[j][i].spriteoffset[0];
+            let oy = wPMDSprite.anims[anim].frames[j][i].spriteoffset[1];
 
             temp.fillStyle = "rgb(255,0,0)";
-            temp.fillRect(i * w + offsetsr[0], j * h + offsetsr[1], 1, 1);
+            temp.fillRect(i * w + ox + offsetsr[0], j * h + oy + offsetsr[1], 1, 1);
             temp.fillStyle = "rgb(0,255,0)";
-            temp.fillRect(i * w + offsetsg[0], j * h + offsetsg[1], 1, 1);
+            temp.fillRect(i * w + ox + offsetsg[0], j * h + oy + offsetsg[1], 1, 1);
             temp.fillStyle = "rgb(0,0,255)";
-            temp.fillRect(i * w + offsetsb[0], j * h + offsetsb[1], 1, 1);
+            temp.fillRect(i * w + ox + offsetsb[0], j * h + oy + offsetsb[1], 1, 1);
 
             if (offsetsr == offsetsg){
                 temp.fillStyle = "rgb(255,255,0)";
-                temp.fillRect(i * w + offsetsr[0], j * h + offsetsr[1], 1, 1);
+                temp.fillRect(i * w + ox + offsetsr[0], j * h + oy + offsetsr[1], 1, 1);
             }
             if (offsetsr == offsetsb){
                 temp.fillStyle = "rgb(255,0,255)";
-                temp.fillRect(i * w + offsetsr[0], j * h + offsetsr[1], 1, 1);
+                temp.fillRect(i * w + ox + offsetsr[0], j * h + oy + offsetsr[1], 1, 1);
             }
             if (offsetsg == offsetsb){
                 temp.fillStyle = "rgb(0,255,255)";
-                temp.fillRect(i * w + offsetsg[0], j * h + offsetsg[1], 1, 1);
+                temp.fillRect(i * w + ox + offsetsg[0], j * h + oy + offsetsg[1], 1, 1);
             }
             if (offsetsr == offsetsg && offsetsg == offsetsb){
                 temp.fillStyle = "rgb(255,255,255)";
-                temp.fillRect(i * w + offsetsr[0], j * h + offsetsr[1], 1, 1);
+                temp.fillRect(i * w + ox + offsetsr[0], j * h + oy + offsetsr[1], 1, 1);
             }
 
             temp.fillStyle = "rgb(0,0,0)";
-            temp.fillRect(i * w + wPMDSprite.anims[anim].frames[j][i].offsetsk[0],
-                j * h + wPMDSprite.anims[anim].frames[j][i].offsetsk[1], 1, 1);
+            temp.fillRect(i * w + ox + wPMDSprite.anims[anim].frames[j][i].offsetsk[0],
+                j * h + oy + wPMDSprite.anims[anim].frames[j][i].offsetsk[1], 1, 1);
         }
     }
     return temp.canvas;
@@ -647,13 +664,11 @@ async function createPMDSpriteFromZip (zip){
 
                 if (frames.length == 1){
 
-                    let boundary = findBorders(frames[0][j]);
-                    PMDSprite['anims'][animData[1][i][0]]['frames'][0].push(createFrameObj(animData[1][i][8][j], frames[0][j], shadows[0][j], offsets[0][j][0], offsets[0][j][1], offsets[0][j][2], offsets[0][j][3], boundary));
+                    PMDSprite['anims'][animData[1][i][0]]['frames'][0].push(createFrameObj(animData[1][i][8][j], frames[0][j][0], shadows[0][j], offsets[0][j][0], offsets[0][j][1], offsets[0][j][2], offsets[0][j][3], frames[0][j][1]));
                 } else {
 
                     for (let k = 0; k < 8; k++){
-                        let boundary = findBorders(frames[k][j]);
-                        PMDSprite['anims'][animData[1][i][0]]['frames'][k].push(createFrameObj(animData[1][i][8][j], frames[k][j], shadows[k][j], offsets[k][j][0], offsets[k][j][1], offsets[k][j][2], offsets[k][j][3], boundary));
+                        PMDSprite['anims'][animData[1][i][0]]['frames'][k].push(createFrameObj(animData[1][i][8][j], frames[k][j][0], shadows[k][j], offsets[k][j][0], offsets[k][j][1], offsets[k][j][2], offsets[k][j][3], frames[k][j][1]));
                     }
                 }
             }
@@ -679,8 +694,8 @@ function createEmptyZip(){
     let offsets = generateEmptyOffsets(20, 20, 1, 8);
 
     for (let k = 0; k < 8; k++){
-        PMDSprite.anims["Walk"].frames[k].push(createFrameObj(4, frames[k][0], shadows[k][0], offsets[k][0][0], offsets[k][0][1], offsets[k][0][2], offsets[k][0][3], [null, null, null, null]));
-        PMDSprite.anims["Idle"].frames[k].push(createFrameObj(4, frames[k][0], shadows[k][0], offsets[k][0][0], offsets[k][0][1], offsets[k][0][2], offsets[k][0][3], [null, null, null, null]));
+        PMDSprite.anims["Walk"].frames[k].push(createFrameObj(4, frames[k][0], shadows[k][0], offsets[k][0][0], offsets[k][0][1], offsets[k][0][2], offsets[k][0][3], [0,0]));
+        PMDSprite.anims["Idle"].frames[k].push(createFrameObj(4, frames[k][0], shadows[k][0], offsets[k][0][0], offsets[k][0][1], offsets[k][0][2], offsets[k][0][3], [0,0]));
     }
     stopDraw();
     dAnim = "Walk";
@@ -725,29 +740,23 @@ function createAnimationObj (name, index = null, copyof = false, width = 0, heig
 }
 
 //creates an empty object that contains all its parts
-function createFrameObj (duration = 1, sprite = null, shadow = null, offsetr = null, offsetg = null, offsetb = null, offsetk = null, boundary = [0,0,0,0]){
+function createFrameObj (duration = 1, sprite = null, shadow = null, offsetr = null, offsetg = null, offsetb = null, offsetk = null, spriteoffset = [0,0]){
 
     let frame = {};
 
     frame['duration'] = duration;
     frame['sprite'] = sprite;
 
-    if (sprite){
-        frame['spritew'] = sprite.width;
-        frame['spriteh'] = sprite.height;
-    } else {
-        frame['spritew'] = w;
-        frame['spriteh'] = w;
-    }
+    frame['spritew'] = sprite.width;
+    frame['spriteh'] = sprite.height;
 
     frame['shadow'] = shadow;
-    frame['offsetsr'] = offsetr;//left hand
-    frame['offsetsg'] = offsetg;//body
-    frame['offsetsb'] = offsetb;//right hand
-    frame['offsetsk'] = offsetk;//face/mouth
+    frame['offsetsr'] = [offsetr[0] - spriteoffset[0], offsetr[1] - spriteoffset[1]];//left hand
+    frame['offsetsg'] = [offsetg[0] - spriteoffset[0], offsetg[1] - spriteoffset[1]];//body
+    frame['offsetsb'] = [offsetb[0] - spriteoffset[0], offsetb[1] - spriteoffset[1]];//right hand
+    frame['offsetsk'] = [offsetk[0] - spriteoffset[0], offsetk[1] - spriteoffset[1]];//face/mouth
 
-    frame['spriteoffset'] = [0,0];
-    frame['spriteboundary'] = boundary;
+    frame['spriteoffset'] = spriteoffset;
 
     return frame;
 }
@@ -886,8 +895,8 @@ function drawFrame(){
         dctx.clearRect(0, 0, 200 * dScale, 200 * dScale);
         dctx.imageSmoothingEnabled = false;
         
-        let w = anim.frameWidth * dScale;
-        let h = anim.frameHeight * dScale;
+        let w = anim.frames[dDirection][dFrame].sprite.width * dScale;
+        let h = anim.frames[dDirection][dFrame].sprite.height * dScale;
         let x = (75 - anim.frameWidth / 2) * dScale;
         let y = (75 - anim.frameHeight / 2) * dScale;
         let ox = anim.frames[dDirection][dFrame].spriteoffset[0] * dScale
@@ -908,10 +917,10 @@ function drawFrame(){
 
                 dctx.fillStyle = offhighlightarray[offhighlightn];
 
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsr[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsr[1] * dScale, dScale, dScale);
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsg[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsg[1] * dScale, dScale, dScale);
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsb[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsb[1] * dScale, dScale, dScale);
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsk[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsk[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsr[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsr[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsg[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsg[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsb[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsb[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsk[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsk[1] * dScale, dScale, dScale);
                 
                 offhighlightn++;
                 if (offhighlightn == 5) offhighlightn = 0;
@@ -919,16 +928,16 @@ function drawFrame(){
             } else {
 
                 dctx.fillStyle = "rgb(255,0,0)";
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsr[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsr[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsr[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsr[1] * dScale, dScale, dScale);
                 
                 dctx.fillStyle = "rgb(0,255,0)";
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsg[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsg[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsg[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsg[1] * dScale, dScale, dScale);
                 
                 dctx.fillStyle = "rgb(0,0,255)";
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsb[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsb[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsb[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsb[1] * dScale, dScale, dScale);
                 
                 dctx.fillStyle = "rgb(0,0,0)";
-                dctx.fillRect(x + anim.frames[dDirection][dFrame].offsetsk[0] * dScale, y + anim.frames[dDirection][dFrame].offsetsk[1] * dScale, dScale, dScale);
+                dctx.fillRect(x + ox + anim.frames[dDirection][dFrame].offsetsk[0] * dScale, y + oy + anim.frames[dDirection][dFrame].offsetsk[1] * dScale, dScale, dScale);
             }
         }
     }
@@ -1429,4 +1438,35 @@ function progressBarHide(bool){
 
 
 
+function copyOffsets(){ //TODO: make it less brute force and more smart
 
+    stopDraw();
+    progressBarSetMax (Object.keys(wPMDSprite.anims).length, true, "Finding duplicate sprites")
+    progressBarHide (false);
+
+    let checked = [];
+    let checkedOffset = [];
+    for (let i in wPMDSprite.anims){
+        for (let k in wPMDSprite.anims[i].frames){
+            for (let j in wPMDSprite.anims[i].frames[k]){
+                let b64 = wPMDSprite.anims[i].frames[k][j].sprite.toDataURL();
+                if (checked.includes(b64)){
+                    let idx = checked.indexOf(b64)
+                    wPMDSprite.anims[i].frames[k][j].offsetsr = checkedOffset[idx][0];
+                    wPMDSprite.anims[i].frames[k][j].offsetsg = checkedOffset[idx][1];
+                    wPMDSprite.anims[i].frames[k][j].offsetsb = checkedOffset[idx][2];
+                    wPMDSprite.anims[i].frames[k][j].offsetsk = checkedOffset[idx][3];
+                } else {
+                    checked.push(b64);
+                    checkedOffset.push([wPMDSprite.anims[i].frames[k][j].offsetsr,
+                        wPMDSprite.anims[i].frames[k][j].offsetsg,
+                        wPMDSprite.anims[i].frames[k][j].offsetsb,
+                        wPMDSprite.anims[i].frames[k][j].offsetsk
+                    ]);
+                }
+            }
+        }
+    }
+    progressBarIncrease ("Finding duplicate sprites");
+    progressBarHide (true);
+}
